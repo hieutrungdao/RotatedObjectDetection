@@ -12,7 +12,6 @@ import torchvision
 import detectron2
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.utils.logger import setup_logger
-setup_logger()
 
 from utils.data import get_RotatedBox_dict, split_dataset
 
