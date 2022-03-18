@@ -32,26 +32,29 @@ from detectron2.structures import RotatedBoxes
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import RotatedCOCOEvaluator,DatasetEvaluators, inference_on_dataset, coco_evaluation,DatasetEvaluator
 
-from train import get_rotated_config, get_RotatedBox_dict
+from utils.config import get_rotated_config
+from utils.data import get_RotatedBox_dict
 
-cfg = get_rotated_config()
-cfg.MODEL.WEIGHTS = "./output/model_final.pth"
+if __name__ = "__main__":
 
-# predictor = RotatedPredictor(cfg)
-predictor = DefaultPredictor(cfg)
+    cfg = get_rotated_config()
+    cfg.MODEL.WEIGHTS = "./output/model_final.pth"
 
-path = "../../data/Phamacity/"
-dataset_dicts = get_RotatedBox_dict(path)
-for d in random.sample(dataset_dicts, 3):
-    pprint(d)
-    im = cv2.imread(d["file_name"])
-    outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
-    v = Visualizer(im[:, :, ::-1],
-                    metadata=MetadataCatalog.get("Test"), 
-                    scale=0.5)
-                    # instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
-    # )
-    out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-    cv2.imwrite("output/" + d["image_id"], out.get_image()[:, :, ::-1])
+    # predictor = RotatedPredictor(cfg)
+    predictor = DefaultPredictor(cfg)
+
+    path = "../../data/Phamacity/"
+    dataset_dicts = get_RotatedBox_dict(path)
+    for d in random.sample(dataset_dicts, 3):
+        pprint(d)
+        im = cv2.imread(d["file_name"])
+        outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
+        v = Visualizer(im[:, :, ::-1],
+                        metadata=MetadataCatalog.get("Test"), 
+                        scale=0.5)
+                        # instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
+        # )
+        out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+        cv2.imwrite("output/" + d["image_id"], out.get_image()[:, :, ::-1])
 
 
