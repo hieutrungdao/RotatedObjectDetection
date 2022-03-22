@@ -57,8 +57,8 @@ if __name__ == "__main__":
     MetadataCatalog.get("Val").set(thing_classes=["person"])
     
     pprint(train_dataset_dicts[1])
-
-    train()
+    
+    # train()
 
 
     

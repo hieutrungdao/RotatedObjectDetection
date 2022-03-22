@@ -22,7 +22,7 @@ def get_def_config():
     cfg.MODEL.ROI_HEADS.NAME = "RROIHeads"
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512   #this is far lower than usual.  
     #cfg.MODEL.ROI_HEADS.NUM_CLASSES =len(ClassesNames.keys())
-    cfg.MODEL.ROI_HEADS.NUM_CLASSES =len(set(metaclasses.values()))
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE = "ROIAlignRotated"
     cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_WEIGHTS = (10,10,5,5,1)
     cfg.MODEL.ROI_BOX_HEAD.NUM_CONV=4
