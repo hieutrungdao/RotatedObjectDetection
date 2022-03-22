@@ -1,6 +1,9 @@
 
+from detectron2.data import build_detection_test_loader, build_detection_train_loader
 from detectron2.engine import DefaultPredictor, DefaultTrainer
 from detectron2.evaluation import RotatedCOCOEvaluator,DatasetEvaluators, inference_on_dataset, coco_evaluation,DatasetEvaluator
+
+from utils.data import mapper
 
 class RotatedTrainer(DefaultTrainer):
     @classmethod

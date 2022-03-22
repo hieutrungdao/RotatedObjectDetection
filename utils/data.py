@@ -1,9 +1,14 @@
 # import some common libraries
 import numpy as np
+import copy
 import os, json, cv2, random
 import xml.etree.ElementTree as ET
+
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+
+
+import torch
 
 from detectron2.structures import BoxMode
 
@@ -99,7 +104,7 @@ if __name__ == "__main__":
     print("Test size: " + str(len(test_dataset_dicts)))
     print("Val size: " + str(len(val_dataset_dicts)))
 
-    pprint(dataset_dicts[0])
+    pprint(dataset_dicts[2])
 
 
 

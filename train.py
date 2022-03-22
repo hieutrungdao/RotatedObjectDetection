@@ -14,12 +14,14 @@ from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.utils.logger import setup_logger
 
 from utils.data import get_RotatedBox_dict, split_dataset
+from utils.config import get_rotated_config
+from utils.engine import RotatedTrainer
 
 
 def train():
     cfg = get_rotated_config()
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-    trainer = MyTrainer(cfg) 
+    trainer = RotatedTrainer(cfg) 
     trainer.resume_or_load(resume=False)
     trainer.train()
 
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     
     pprint(train_dataset_dicts[1])
 
-    # train()
+    train()
 
 
     
