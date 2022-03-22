@@ -34,6 +34,7 @@ from detectron2.evaluation import RotatedCOCOEvaluator,DatasetEvaluators, infere
 
 from utils.config import get_rotated_config
 from utils.data import get_RotatedBox_dict
+from utils.engine import RotatedPredictor, RotatedTrainer
 
 if __name__ == "__main__":
 

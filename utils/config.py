@@ -10,7 +10,7 @@ def get_def_config():
     cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml") # Let training initialize from model zoo
     cfg.DATASETS.TRAIN = (["Train"])
-    cfg.DATASETS.TEST = ([func.__name__ for func in functions["Test"]])
+    cfg.DATASETS.TEST = ([["Test"]])
 
     cfg.MODEL.MASK_ON=False
     cfg.MODEL.PROPOSAL_GENERATOR.NAME = "RRPN"

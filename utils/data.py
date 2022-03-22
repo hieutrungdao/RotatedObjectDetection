@@ -45,6 +45,166 @@ def mapper(dataset_dict):
     return dataset_dict
 
 
+def annotations_to_instances(annos, image_size, mask_format="polygon"):
+    """
+    Create an :class:`Instances` object used by the models,
+    from instance annotations in the dataset dict.
+    Args:
+        annos (list[dict]): a list of instance annotations in one image, each
+            element for one instance.
+        image_size (tuple): height, width
+    Returns:
+        Instances:
+            It will contain fields "gt_boxes", "gt_classes",
+            "gt_masks", "gt_keypoints", if they can be obtained from `annos`.
+            This is the format that builtin models expect.
+    """
+
+    target = Instances(image_size)
+
+
+    rotated = all(obj["bbox_mode"] == BoxMode.XYWHA_ABS for obj in annos)
+    if rotated:
+        boxes = [obj["bbox"] for obj in annos]
+        boxes = target.gt_boxes = RotatedBoxes(boxes)
+    else:
+        boxes = [BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS) for obj in annos]
+        boxes = target.gt_boxes = Boxes(boxes)
+    boxes.clip(image_size)
+
+    classes = [obj["category_id"] for obj in annos]
+    classes = torch.tensor(classes, dtype=torch.int64)
+    target.gt_classes = classes
+    if len(annos) and "segmentation" in annos[0]:
+        segms = [obj["segmentation"] for obj in annos]
+        if mask_format == "polygon":
+            masks = PolygonMasks(segms)
+        else:
+            assert mask_format == "bitmask", mask_format
+            masks = []
+            for segm in segms:
+                if isinstance(segm, list):
+                    # polygon
+                    masks.append(polygons_to_bitmask(segm, *image_size))
+                elif isinstance(segm, dict):
+                    # COCO RLE
+                    masks.append(mask_util.decode(segm))
+                elif isinstance(segm, np.ndarray):
+                    assert segm.ndim == 2, "Expect segmentation of 2 dimensions, got {}.".format(
+                        segm.ndim
+                    )
+                    # mask array
+                    masks.append(segm)
+                else:
+                    raise ValueError(
+                        "Cannot convert segmentation of type '{}' to BitMasks!"
+                        "Supported types are: polygons as list[list[float] or ndarray],"
+                        " COCO-style RLE as a dict, or a full-image segmentation mask "
+                        "as a 2D ndarray.".format(type(segm))
+                    )
+            # torch.from_1numpy does not support array with negative stride.
+            masks = BitMasks(
+                torch.stack([torch.from_numpy(np.ascontiguousarray(x)) for x in masks])
+            )
+        target.gt_masks = masks
+    if len(annos) and "keypoints" in annos[0]:
+        kpts = [obj.get("keypoints", []) for obj in annos]
+        target.gt_keypoints = Keypoints(kpts)
+    return target
+def convert_to_coco_dict(dataset_name):
+
+    dataset_dicts = DatasetCatalog.get(dataset_name)
+    metadata = MetadataCatalog.get(dataset_name)
+
+    # unmap the category mapping ids for COCO
+    if hasattr(metadata, "thing_dataset_id_to_contiguous_id"):
+        reverse_id_mapping = {v: k for k, v in metadata.thing_dataset_id_to_contiguous_id.items()}
+        reverse_id_mapper = lambda contiguous_id: reverse_id_mapping[contiguous_id]  # noqa
+    else:
+        reverse_id_mapper = lambda contiguous_id: contiguous_id  # noqa
+
+    categories = [
+        {"id": reverse_id_mapper(id), "name": name}
+        for id, name in enumerate(metadata.thing_classes)
+    ]
+
+    coco_images = []
+    coco_annotations = []
+
+    for image_id, image_dict in enumerate(dataset_dicts):
+        #print(str(image_id) + str(image_dict))
+        coco_image = {
+            "id": image_dict.get("image_id", image_id),
+            "width": image_dict["width"],
+            "height": image_dict["height"],
+            "file_name": image_dict["file_name"],
+        }
+        coco_images.append(coco_image)
+
+        anns_per_image = image_dict["annotations"]
+        for annotation in anns_per_image:
+            # create a new dict with only COCO fields
+            coco_annotation = {}
+
+            # COCO requirement: XYWH box format
+            bbox = annotation["bbox"]
+            bbox_mode = annotation["bbox_mode"]
+            # Computing areas using bounding boxes
+            bbox_xy = BoxMode.convert(bbox, bbox_mode, BoxMode.XYXY_ABS)
+            area = Boxes([bbox_xy]).area()[0].item()
+
+            if "keypoints" in annotation:
+                keypoints = annotation["keypoints"]  # list[int]
+                for idx, v in enumerate(keypoints):
+                    if idx % 3 != 2:
+                        # COCO's segmentation coordinates are floating points in [0, H or W],
+                        # but keypoint coordinates are integers in [0, H-1 or W-1]
+                        # For COCO format consistency we substract 0.5
+                        # https://github.com/facebookresearch/detectron2/pull/175#issuecomment-551202163
+                        keypoints[idx] = v - 0.5
+                if "num_keypoints" in annotation:
+                    num_keypoints = annotation["num_keypoints"]
+                else:
+                    num_keypoints = sum(kp > 0 for kp in keypoints[2::3])
+
+            # COCO requirement:
+            #   linking annotations to images
+            #   "id" field must start with 1
+            coco_annotation["id"] = len(coco_annotations) + 1
+            coco_annotation["image_id"] = coco_image["id"]
+            coco_annotation["bbox"] = [round(float(x), 3) for x in bbox]
+            coco_annotation["area"] = float(area)
+            coco_annotation["iscrowd"] = annotation.get("iscrowd", 0)
+            coco_annotation["category_id"] = reverse_id_mapper(annotation["category_id"])
+
+            # Add optional fields
+            coco_annotations.append(coco_annotation)
+
+
+    info = {
+        "date_created": str(datetime.datetime.now()),
+        "description": "Automatically generated COCO json file for Detectron2.",
+    }
+    coco_dict = {
+        "info": info,
+        "images": coco_images,
+        "annotations": coco_annotations,
+        "categories": categories,
+        "licenses": None,
+    }
+    return coco_dict
+
+
+def convert_to_coco_json(dataset_name, output_file, allow_cached=True):
+
+    coco_dict = convert_to_coco_dict(dataset_name)
+
+    PathManager.mkdirs(os.path.dirname(output_file))
+    with PathManager.open(output_file, "w") as f:
+      json.dump(coco_dict, f)
+
+
+
 def get_RotatedBox_dict(path):     
     dataset_dicts = []
     for dir in os.listdir(path):
