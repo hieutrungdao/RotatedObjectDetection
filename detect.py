@@ -35,10 +35,10 @@ from detectron2.evaluation import RotatedCOCOEvaluator,DatasetEvaluators, infere
 from utils.config import get_rotated_config
 from utils.data import get_RotatedBox_dict
 
-if __name__ = "__main__":
+if __name__ == "__main__":
 
     cfg = get_rotated_config()
-    cfg.MODEL.WEIGHTS = "./output/model_final.pth"
+    cfg.MODEL.WEIGHTS = "./weights/model_final.pth"
 
     # predictor = RotatedPredictor(cfg)
     predictor = DefaultPredictor(cfg)
@@ -48,7 +48,20 @@ if __name__ = "__main__":
     for d in random.sample(dataset_dicts, 3):
         pprint(d)
         im = cv2.imread(d["file_name"])
+
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        start.record()
+
         outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
+
+        end.record()
+
+        # Waits for everything to finish running
+        torch.cuda.synchronize()
+        print(start.elapsed_time(end))
+        
         v = Visualizer(im[:, :, ::-1],
                         metadata=MetadataCatalog.get("Test"), 
                         scale=0.5)

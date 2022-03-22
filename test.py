@@ -22,7 +22,7 @@ def train():
     cfg = get_rotated_config()
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     trainer = RotatedTrainer(cfg) 
-    trainer.resume_or_load(resume=False)
+    trainer.resume_or_load(resume=True)
     trainer.train()
 
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     logger.info("Data preparation")
     path = "../../data/Phamacity/"
     dataset_dicts = get_RotatedBox_dict(path)
-    train_dataset_dicts, test_dataset_dicts, val_dataset_dicts = split_dataset(dataset_dicts)
+    train_dataset_dicts, test_dataset_dicts, val_dataset_dicts = split_dataset(dataset_dicts, test_size=.01)
     
     logger.info("Dataset size: " + str(len(dataset_dicts)))
     logger.info("Train size: " + str(len(train_dataset_dicts)))

@@ -73,7 +73,6 @@ def get_RotatedBox_dict(path):
                                     "bbox_mode": BoxMode.XYWHA_ABS,
                                     "category_id": 0,
                                 }
-                                obj["bbox"] = numpy.asarray(obj["bbox"])
                             objs.append(obj)
                         record["annotations"] = objs
                         dataset_dicts.append(record)   
