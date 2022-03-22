@@ -55,27 +55,28 @@ def get_RotatedBox_dict(path):
                     if not (os.path.exists(path+dir+"/"+portion[0]+".jpg")):
                         # jpg file not found
                         print(path+dir+"/"+filename)
-                        pass
-                    record = {}
-                    tree = ET.parse(path+dir+"/"+filename, parser=ET.XMLParser(encoding="utf-8"))
-                    root = tree.getroot()
-                    record["file_name"] = path+dir+"/"+portion[0]+".jpg"
-                    record["image_id"] = portion[0]+".jpg"
-                    record["width"] = int(root[4][0].text)
-                    record["height"] = int(root[4][1].text)
-                    record["depth"] = int(root[4][2].text)
-                    objs = []
-                    for obj in root[6:]:
-                        if obj.tag == "object":
-                            obj = {
-                                "bbox": [float(obj[5][0].text), float(obj[5][1].text), 
-                                    float(obj[5][2].text), float(obj[5][3].text), float(obj[5][4].text)*(180/np.pi)],
-                                "bbox_mode": BoxMode.XYWHA_ABS,
-                                "category_id": 0,
-                            }
-                        objs.append(obj)
-                    record["annotations"] = objs
-                    dataset_dicts.append(record)   
+                    else:
+                        record = {}
+                        tree = ET.parse(path+dir+"/"+filename, parser=ET.XMLParser(encoding="utf-8"))
+                        root = tree.getroot()
+                        record["file_name"] = path+dir+"/"+portion[0]+".jpg"
+                        record["image_id"] = portion[0]+".jpg"
+                        record["width"] = int(root[4][0].text)
+                        record["height"] = int(root[4][1].text)
+                        record["depth"] = int(root[4][2].text)
+                        objs = []
+                        for obj in root[6:]:
+                            if obj.tag == "object":
+                                obj = {
+                                    "bbox": [float(obj[5][0].text), float(obj[5][1].text), 
+                                        float(obj[5][2].text), float(obj[5][3].text), float(obj[5][4].text)*(180/np.pi)],
+                                    "bbox_mode": BoxMode.XYWHA_ABS,
+                                    "category_id": 0,
+                                }
+                                obj["bbox"] = numpy.asarray(obj["bbox"])
+                            objs.append(obj)
+                        record["annotations"] = objs
+                        dataset_dicts.append(record)   
     return dataset_dicts
 
 
